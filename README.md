@@ -1,59 +1,216 @@
 # NgxErrorHandling
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.8.
+I created this library to provide a way to handle all errors that can happen in an angular application.
 
-## Development server
+Before the introduction of signals, I was using an ErrorHandler and everything worked.
 
-To start a local development server, run:
+Now, the issue raises when we use signals since they memoize the errors.
 
-```bash
-ng serve
+If an error is generated when the value of a signal is evaluated, this error is thrown everytime
+the signal is read.
+
+References:
+
+* https://medium.com/netanelbasal/handling-errors-with-tosignal-in-angular-6500511c0d6f
+* https://github.com/angular/angular/issues/51949
+
+ 
+
+## In summary: what does it do?
+
+It will automatically non-handled handle rxjs, signal and classic errors and make them available in a rx subject (`ErrorBus`)
+
+* log these errors in the console (useful during development).
+* display these errors to the user.
+
+The components in the library are:
+
+```
+Sensor -> Centralized Service -> Notification
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+* Sensor is meant to capture the errors.  
+  The sensors handle the errors. The default configuration sends the error to the Centralized Service.  
+  The library provides 3 sensors :
+  * ErrorHandler
+  * Signal
+  * Http Interceptor (not really interesting, the errorHandler does the same stuff).
+* Centralized service  
+  The centralized service is the `ErrorBus` component.  
+  It is basically a rxjs `Subject` wrapper.  
+  Any component can listen to the errors that are sent to the ErrorBus.
+* Notification  
+  This component is meant to report the error to the end user.  
+  The library doesn't provide any implementation for it, since I think every application
+  will have its own need. 
+  The implementation will be straightforward :
+  * listen to the ErrorBus
+  * diplay the error in a toaster or similar component. 
+    
 
-## Code scaffolding
+## How to use this library ?
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Using everything
 
-```bash
-ng generate component component-name
+If you want to use all the stuff, you'll need to :
+
+* register the providers from `provideErrorHandler()` in your app.config.
+* provide you ErrorNotifier
+
+.app.config.ts
+```typescript
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+} from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+import { provideErrorHandler } from '@gonzal/ngx-error-handling';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideErrorHandler(),
+    provideHttpClient(withInterceptors([errorHttpInterceptor])),
+    // instantiates your ErrorNotifier at startup
+    provideAppInitializer(() => {
+      inject(ErrorNotifier);
+    })
+  ],
+};
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+.ErrorNotifier
+```typescript
+import { inject, Injectable } from "@angular/core";
+import { ErrorBus } from '@gonzal/ngx-error-handling';
 
-```bash
-ng generate --help
+@Injectable({providedIn: 'root'})
+export class ErrorNotifier {
+    #errorBus = inject(ErrorBus);
+
+    constructor() {
+        this.#errorBus.getErrorStream().subscribe((error) => this.#notify(error));
+    }
+
+    #notify(error: Error) {
+        // or whatever other error reporting mechanism you want to use
+        console.log(error);
+    }
+}
 ```
 
-## Building
+### Using only what you need
 
-To build the project run:
+You can also use only the captor you need (i.e. signal captor).
 
-```bash
-ng build
+Moreon this in the captor section.
+
+
+## Captors
+
+
+### Signals
+
+To capture the errors that can be thrown in a signal, you'll need to use `safeSignal()` method.
+
+This will replace any occurence of `computed()` or `toSignal()`.
+
+Sample usage :
+
+.Safe signal evaluation
+```typescript
+value = input('');
+
+computedValue = safeSignal(() => {
+    const value = this.value();
+    return this.#businessLogic(value);
+  },
+  {
+    // value that will be returned by the signal if an error is thrown
+    fallback: 'default value',
+    // error handling mechanism
+    onError: (e) => console.error(e);
+  }
+);
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
-## Running unit tests
+.Safe observable to signal conversion
+```typescript
+#userService = inject(UserService);
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+users = safeSignal(this.#userService.getUsers(),
+  {
+    // value that will be returned by the signal if an error is thrown
+    fallback: [],
+    // error handling mechanism
+    onError: (e) => console.error(e);
+  }
+);
 ```
 
-## Running end-to-end tests
+The options parameter is optional. If the parameter is undefined, `safeSignal` will just use the options from the provider `SignalErrorConfiguration`
+if it is available (if you use `provideErrorHandler()`, this configuration class is already provided and configured to send the errors to the `ErrorBus`).
 
-For end-to-end (e2e) testing, run:
+So a more realistic sample would be :
 
-```bash
-ng e2e
+```typescript
+value = input('');
+
+computedValue = safeSignal(() => {
+  const value = this.value();
+  return this.#businessLogic(value);
+});
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
-## Additional Resources
+.Safe observable to signal conversion
+```typescript
+#userService = inject(UserService);
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+users = safeSignal(this.#userService.getUsers(), { fallback: [] });
+```
+
+### Http Interceptor
+
+`ErrorHttpInterceptor` catches all errors thrown by httpClient.
+
+It the ask the `ErrorHttpInterceptorConfiguration` provider if it should handle the error.
+
+If yes, it call the `onError` of the `ErrorHttpInterceptorConfiguration`, marks the error as handled and just rethrows the error.
+
+If `ErrorHttpInterceptorConfiguration` is not provided, `ErrorHttpInterceptor` is just a noop interceptor.
+
+Note that `provideErrorHandler()` already provides `ErrorHttpInterceptorConfiguration`.
+
+### ErrorHandler
+
+`NgxErrorHandler` just propagates any error to the `ErrorBus`.
+
+## ErrorBus
+
+This is a wrapper around a rxjs Subject.
+
+To use it:
+
+```typescript
+import { inject, Injectable } from "@angular/core";
+import { ErrorBus } from '@gonzal/ngx-error-handling';
+
+@Injectable({providedIn: 'root'})
+export class ErrorNotifier {
+    #errorBus = inject(ErrorBus);
+
+    constructor() {
+        this.#errorBus.getErrorStream().subscribe((error) => this.#notify(error));
+    }
+
+    #notify(error: Error) {
+        // or whatever other error reporting mechanism you want to use
+        console.log(error);
+    }
+}
+```

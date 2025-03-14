@@ -1,14 +1,23 @@
 {
-  "name": "ngx-error-handling",
+  "name": "@gonzal/ngx-error-handling",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "ng serve test-app",
+    "build": "ng build @gonzal/ngx-error-handling",
+    "build:test-app": "ng build test-app",
+    "format": "prettier --check --write **/*{.ts,.html,.css}",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:watch": "ng test --watch",
+    "lint": "ng lint @gonzal/ngx-error-handling",
+    "prepare": "husky"
   },
   "private": true,
+  "lint-staged": {
+    "*.{ts,html}": "eslint --no-warn-ignored",
+    "*.{ts,css,html}": "prettier --cache --write"
+  },
   "dependencies": {
     "@angular/animations": "^19.1.0",
     "@angular/common": "^19.1.0",
@@ -27,13 +36,20 @@
     "@angular/cli": "^19.1.8",
     "@angular/compiler-cli": "^19.1.0",
     "@types/jasmine": "~5.1.0",
+    "angular-eslint": "19.2.1",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "husky": "^9.1.7",
     "jasmine-core": "~5.5.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "lint-staged": "^15.5.0",
     "ng-packagr": "^19.2.0",
-    "typescript": "~5.7.2"
+    "prettier": "^3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "8.26.0"
   }
 }

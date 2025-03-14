@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "ngx-error-handling": {
+    "@gonzal/ngx-error-handling": {
       "projectType": "library",
       "root": "projects/ngx-error-handling",
       "sourceRoot": "projects/ngx-error-handling/src",
@@ -32,6 +32,16 @@
               "zone.js",
               "zone.js/testing"
             ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/ngx-error-handling/**/*.ts",
+              "projects/ngx-error-handling/**/*.html"
+            ],
+            "eslintConfig": "projects/ngx-error-handling/eslint.config.js"
           }
         }
       }

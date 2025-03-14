@@ -10,8 +10,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "ngx-error-handling": [
-        "./dist/ngx-error-handling"
+      "@gonzal/ngx-error-handling": [
+        "./projects/ngx-error-handling/src/public-api"
       ]
     },
     "skipLibCheck": true,
