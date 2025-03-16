@@ -8,12 +8,11 @@
     "build:test-app": "ng build test-app",
     "format": "prettier --check --write **/*{.ts,.html,.css}",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "test": "ng test --browsers=ChromeHeadless @gonzal/ngx-error-handling",
     "test:watch": "ng test --watch",
     "lint": "ng lint @gonzal/ngx-error-handling",
     "prepare": "husky"
   },
-  "private": true,
   "lint-staged": {
     "*.{ts,html}": "eslint --no-warn-ignored",
     "*.{ts,css,html}": "prettier --cache --write"

@@ -1,6 +1,11 @@
 {
   "name": "@gonzal/ngx-error-handling",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gonzalad/ngx-error-handling.git",
+    "directory": "projects/ngx-error-handling"
+  },
   "peerDependencies": {
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0"
